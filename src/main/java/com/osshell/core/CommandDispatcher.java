@@ -62,6 +62,8 @@ public class CommandDispatcher {
         builtInCommands.put("rm", fileSystemCommands);
         builtInCommands.put("touch", fileSystemCommands);
         builtInCommands.put("cat", fileSystemCommands);
+        builtInCommands.put("chmod", fileSystemCommands);
+        builtInCommands.put("chown", fileSystemCommands);
         
         // Utility commands
         builtInCommands.put("echo", utilityCommands);
