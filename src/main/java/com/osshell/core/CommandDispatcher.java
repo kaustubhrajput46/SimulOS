@@ -6,6 +6,7 @@ import com.osshell.commands.UtilityCommands;
 import com.osshell.jobs.ErrorHandler;
 import com.osshell.jobs.JobCommands;
 import com.osshell.process.ProcessManager;
+import com.osshell.scheduling.SchedulingCommands;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +20,7 @@ public class CommandDispatcher {
     private final FileSystemCommands fileSystemCommands;
     private final UtilityCommands utilityCommands;
     private final JobCommands jobCommands;
+    private final SchedulingCommands schedulingCommands;
 
     public CommandDispatcher(ProcessManager processManager) {
         this.processManager = processManager;
@@ -26,7 +28,8 @@ public class CommandDispatcher {
         this.fileSystemCommands = new FileSystemCommands();
         this.utilityCommands = new UtilityCommands();
         this.jobCommands = new JobCommands(processManager.getJobTracker());
-        
+        this.schedulingCommands = new SchedulingCommands();
+
         registerBuiltInCommands();
     }
 
@@ -54,6 +57,15 @@ public class CommandDispatcher {
         builtInCommands.put("fg", jobCommands);
         builtInCommands.put("bg", jobCommands);
         builtInCommands.put("kill", jobCommands);
+
+        // Scheduling commands
+        builtInCommands.put("schedule-rr", schedulingCommands);
+        builtInCommands.put("schedule-priority", schedulingCommands);
+        builtInCommands.put("add-process", schedulingCommands);
+        builtInCommands.put("run-scheduler", schedulingCommands);
+        builtInCommands.put("stop-scheduler", schedulingCommands);
+        builtInCommands.put("show-metrics", schedulingCommands);
+        builtInCommands.put("clear-scheduler", schedulingCommands);
     }
 
     /**
@@ -73,8 +85,8 @@ public class CommandDispatcher {
         if (builtInCommands.containsKey(commandName)) {
             Command command = builtInCommands.get(commandName);
             
-            // Combine command name with arguments for FileSystemCommands and UtilityCommands
-            if (command == fileSystemCommands || command == utilityCommands || command == jobCommands) {
+            // Combine command name with arguments for FileSystemCommands, UtilityCommands, JobCommands, and SchedulingCommands
+            if (command == fileSystemCommands || command == utilityCommands || command == jobCommands || command == schedulingCommands) {
                 String[] fullArgs = new String[parsedCommand.getArguments().length + 1];
                 fullArgs[0] = commandName;
                 System.arraycopy(parsedCommand.getArguments(), 0, fullArgs, 1, parsedCommand.getArguments().length);

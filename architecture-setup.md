@@ -32,12 +32,22 @@ To enable our team of 4 to work simultaneously without merge conflicts, the syst
     * `JobCommands.java`: Implements the job control built-ins: `jobs` (list all background jobs), `fg` (bring job to foreground), `bg` (resume stopped job in background), and `kill` (terminate by PID).
     * `ErrorHandler.java`: Standardizes system feedback for invalid inputs, unrecognized commands, or failed process executions.
 
-## 3. GitHub Copilot Prompting Instructions
+### Module 5: Process Scheduling
+* **Responsibility**: Simulates OS-level process scheduling using Round-Robin and Priority-Based algorithms.
+* **Key Classes**:
+    * `ProcessScheduler.java` (Interface): Defines the contract for scheduling algorithms with methods for adding processes, running the scheduler, and getting metrics.
+    * `RoundRobinScheduler.java`: Implements Round-Robin scheduling with configurable time quantum. Manages process queue and switches processes after each time slice.
+    * `PriorityScheduler.java`: Implements Priority-Based scheduling with preemption. Uses priority queue to ensure highest-priority processes run first.
+    * `SimulatedProcess.java`: Represents a simulated process with properties like process ID, burst time, priority, arrival time, and execution state.
+    * `SchedulingMetrics.java`: Tracks and calculates performance metrics: waiting time, turnaround time, and response time.
+    * `SchedulingCommands.java`: Implements user commands for scheduling: `schedule-rr` (Round-Robin), `schedule-priority` (Priority-Based), `add-process`, and `show-metrics`.
+
+## 3. Technical Specifications
 * **Tech Stack**: Pure core Java. **Strictly do not use Spring Boot or any external web frameworks.** Use `java.lang.ProcessBuilder` for process management.
 * **Build Tool**: Maven (for basic compiling and packaging only).
-* **Structure**: Generate the following package structure:
-    * `com.osshell.core`
-    * `com.osshell.commands`
-    * `com.osshell.process`
-    * `com.osshell.jobs`
-* **Initial Task**: Generate the `Command` interface, the empty class skeletons for the four modules listed above, and a basic `Shell.java` file containing a working REPL loop that prints a terminal prompt and reads from `System.in`.
+* **Package Structure**:
+    * `com.osshell.core` - Shell REPL and command parsing
+    * `com.osshell.commands` - Built-in command implementations
+    * `com.osshell.process` - External process execution
+    * `com.osshell.jobs` - Job control and tracking
+    * `com.osshell.scheduling` - Process scheduling algorithms and simulation
