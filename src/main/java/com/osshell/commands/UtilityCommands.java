@@ -16,27 +16,6 @@ public class UtilityCommands implements Command {
         this.shell = shell;
     }
 
-    @Override
-    public int execute(String[] args) {
-        if (args.length == 0) {
-            return 1;
-        }
-
-        String command = args[0];
-        String[] cmdArgs = Arrays.copyOfRange(args, 1, args.length);
-
-        switch (command) {
-            case "echo":
-                return echo(cmdArgs);
-            case "clear":
-                return clear(cmdArgs);
-            case "exit":
-                return exit(cmdArgs);
-            default:
-                System.err.println("Unknown utility command: " + command);
-                return 1;
-        }
-    }
 
     @Override
     public int execute(String[] args, InputStream in, PrintStream out) {

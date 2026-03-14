@@ -2,7 +2,6 @@ package com.osshell.commands;
 
 import com.osshell.security.FileSecurityManager;
 import com.osshell.security.Session;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -25,41 +24,6 @@ public class FileSystemCommands implements Command {
         this.securityManager = FileSecurityManager.getInstance();
     }
 
-    @Override
-    public int execute(String[] args) {
-        if (args.length == 0) {
-            return 1;
-        }
-
-        String command = args[0];
-        String[] cmdArgs = Arrays.copyOfRange(args, 1, args.length);
-
-        switch (command) {
-            case "cd":
-                return cd(cmdArgs);
-            case "pwd":
-                return pwd(cmdArgs);
-            case "ls":
-                return ls(cmdArgs);
-            case "mkdir":
-                return mkdir(cmdArgs);
-            case "rmdir":
-                return rmdir(cmdArgs);
-            case "rm":
-                return rm(cmdArgs);
-            case "touch":
-                return touch(cmdArgs);
-            case "cat":
-                return cat(cmdArgs);
-            case "chmod":
-                return chmod(cmdArgs);
-            case "chown":
-                return chown(cmdArgs);
-            default:
-                System.err.println("Unknown file system command: " + command);
-                return 1;
-        }
-    }
 
     @Override
     public int execute(String[] args, InputStream in, PrintStream out) {
@@ -150,9 +114,8 @@ public class FileSystemCommands implements Command {
         }
 
         if (Files.isDirectory(targetPath)) {
-            try {
-                Files.list(targetPath)
-                        .sorted(Comparator.comparing(Path::getFileName))
+            try (Stream<Path> stream = Files.list(targetPath)) {
+                stream.sorted(Comparator.comparing(Path::getFileName))
                         .forEach(path -> {
                             String name = path.getFileName().toString();
                             if (Files.isDirectory(path)) {
@@ -308,6 +271,10 @@ public class FileSystemCommands implements Command {
                     Files.createFile(file);
                     securityManager.createFileMetadata(file.toString(), Session.getInstance().getCurrentUser().getUsername());
                 } else {
+                    if (!checkAccess(file, "w")) {
+                        System.err.println("touch: permission denied: " + fileName);
+                        return 1;
+                    }
                     // Update last modified time
                     Files.setLastModifiedTime(file, 
                         java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis()));

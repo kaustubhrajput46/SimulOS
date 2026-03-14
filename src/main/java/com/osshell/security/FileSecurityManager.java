@@ -2,6 +2,7 @@ package com.osshell.security;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.nio.file.Paths;
 
 /**
  * Manages file permissions.
@@ -22,10 +23,12 @@ public class FileSecurityManager {
         fileOwners = new HashMap<>();
         filePermissions = new HashMap<>();
         
+        String cwd = System.getProperty("user.dir");
+        
         // Seed some system files
-        setPermissions("system.conf", "admin", "rw-");
-        setPermissions("data.txt", "user1", "rw-");
-        setPermissions("readme.md", "admin", "r--");
+        setPermissions(Paths.get(cwd, "system.conf").toString(), "admin", "rw-");
+        setPermissions(Paths.get(cwd, "data.txt").toString(), "user1", "rw-");
+        setPermissions(Paths.get(cwd, "readme.md").toString(), "admin", "r--");
     }
 
     public static synchronized FileSecurityManager getInstance() {
@@ -93,4 +96,3 @@ public class FileSecurityManager {
         return String.format("%s %s", perms, owner);
     }
 }
-
