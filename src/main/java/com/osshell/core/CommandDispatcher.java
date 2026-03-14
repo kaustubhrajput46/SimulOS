@@ -3,10 +3,11 @@ package com.osshell.core;
 import com.osshell.commands.Command;
 import com.osshell.commands.FileSystemCommands;
 import com.osshell.commands.UtilityCommands;
-import com.osshell.jobs.ErrorHandler;
 import com.osshell.jobs.JobCommands;
+import com.osshell.memory.MemoryCommands;
 import com.osshell.process.ProcessManager;
 import com.osshell.scheduling.SchedulingCommands;
+import com.osshell.sync.SyncCommands;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -21,6 +22,8 @@ public class CommandDispatcher {
     private final UtilityCommands utilityCommands;
     private final JobCommands jobCommands;
     private final SchedulingCommands schedulingCommands;
+    private final MemoryCommands memoryCommands;
+    private final SyncCommands syncCommands;
 
     public CommandDispatcher(ProcessManager processManager) {
         this.processManager = processManager;
@@ -29,6 +32,8 @@ public class CommandDispatcher {
         this.utilityCommands = new UtilityCommands();
         this.jobCommands = new JobCommands(processManager.getJobTracker());
         this.schedulingCommands = new SchedulingCommands();
+        this.memoryCommands = new MemoryCommands();
+        this.syncCommands = new SyncCommands();
 
         registerBuiltInCommands();
     }
@@ -66,6 +71,18 @@ public class CommandDispatcher {
         builtInCommands.put("stop-scheduler", schedulingCommands);
         builtInCommands.put("show-metrics", schedulingCommands);
         builtInCommands.put("clear-scheduler", schedulingCommands);
+
+        // Memory Management commands
+        builtInCommands.put("mem-init", memoryCommands);
+        builtInCommands.put("mem-alloc", memoryCommands);
+        builtInCommands.put("mem-access", memoryCommands);
+        builtInCommands.put("mem-free", memoryCommands);
+        builtInCommands.put("mem-status", memoryCommands);
+        builtInCommands.put("mem-algo", memoryCommands);
+
+        // Synchronization commands
+        builtInCommands.put("sync-pc-start", syncCommands);
+        builtInCommands.put("sync-pc-stop", syncCommands);
     }
 
     /**
@@ -86,7 +103,7 @@ public class CommandDispatcher {
             Command command = builtInCommands.get(commandName);
             
             // Combine command name with arguments for FileSystemCommands, UtilityCommands, JobCommands, and SchedulingCommands
-            if (command == fileSystemCommands || command == utilityCommands || command == jobCommands || command == schedulingCommands) {
+            if (command == fileSystemCommands || command == utilityCommands || command == jobCommands || command == schedulingCommands || command == memoryCommands || command == syncCommands) {
                 String[] fullArgs = new String[parsedCommand.getArguments().length + 1];
                 fullArgs[0] = commandName;
                 System.arraycopy(parsedCommand.getArguments(), 0, fullArgs, 1, parsedCommand.getArguments().length);
