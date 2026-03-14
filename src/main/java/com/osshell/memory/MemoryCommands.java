@@ -1,6 +1,9 @@
 package com.osshell.memory;
 
 import com.osshell.commands.Command;
+import java.io.InputStream;
+import java.io.PrintStream;
+import java.util.Arrays;
 
 /**
  * Commands for interacting with the memory management system.
@@ -9,8 +12,13 @@ public class MemoryCommands implements Command {
 
     @Override
     public int execute(String[] args) {
+        return execute(args, System.in, System.out);
+    }
+    
+    @Override
+    public int execute(String[] args, InputStream in, PrintStream out) {
         if (args.length == 0) {
-            printUsage();
+            printUsage(out);
             return 1;
         }
 
@@ -27,7 +35,7 @@ public class MemoryCommands implements Command {
                     int totalSize = Integer.parseInt(args[1]);
                     int pageSize = Integer.parseInt(args[2]);
                     memoryManager.init(totalSize, pageSize);
-                    System.out.println("Memory initialized: " + totalSize + "KB total, " + pageSize + "KB pages.");
+                    out.println("Memory initialized: " + totalSize + "KB total, " + pageSize + "KB pages.");
                     break;
 
                 case "mem-alloc":
@@ -60,7 +68,7 @@ public class MemoryCommands implements Command {
                     break;
 
                 case "mem-status":
-                    System.out.println(memoryManager.getMemoryStatus());
+                    out.println(memoryManager.getMemoryStatus());
                     break;
                 
                 case "mem-algo":
@@ -71,10 +79,10 @@ public class MemoryCommands implements Command {
                     String algo = args[1].toUpperCase();
                     if (algo.equals("FIFO")) {
                         memoryManager.setAlgorithm(new FIFOAlgorithm());
-                        System.out.println("Page replacement algorithm set to FIFO.");
+                        out.println("Page replacement algorithm set to FIFO.");
                     } else if (algo.equals("LRU")) {
                         memoryManager.setAlgorithm(new LRUAlgorithm());
-                        System.out.println("Page replacement algorithm set to LRU.");
+                        out.println("Page replacement algorithm set to LRU.");
                     } else {
                         System.err.println("Unknown algorithm: " + algo);
                     }
@@ -82,7 +90,7 @@ public class MemoryCommands implements Command {
 
                 default:
                     System.err.println("Unknown memory command: " + subCommand);
-                    printUsage();
+                    printUsage(out);
                     return 1;
             }
         } catch (NumberFormatException e) {
@@ -93,15 +101,17 @@ public class MemoryCommands implements Command {
         return 0;
     }
 
+    private void printUsage(PrintStream out) {
+        out.println("Memory Management Commands:");
+        out.println("  mem-init <total> <page>  Initialize memory system");
+        out.println("  mem-alloc <pid> <size>   Allocate virtual memory to process");
+        out.println("  mem-access <pid> <addr>  Access virtual address (may trigger fault)");
+        out.println("  mem-free <pid>           Deallocate process memory");
+        out.println("  mem-status               Show memory map and stats");
+        out.println("  mem-algo <FIFO|LRU>      Set page replacement algorithm");
+    }
+    
     private void printUsage() {
-        System.out.println("Memory Management Commands:");
-        System.out.println("  mem-init <total> <page>  Initialize memory system");
-        System.out.println("  mem-alloc <pid> <size>   Allocate virtual memory to process");
-        System.out.println("  mem-access <pid> <addr>  Access virtual address (may trigger fault)");
-        System.out.println("  mem-free <pid>           Deallocate process memory");
-        System.out.println("  mem-status               Show memory map and stats");
-        System.out.println("  mem-algo <FIFO|LRU>      Set page replacement algorithm");
+        printUsage(System.out);
     }
 }
-
-

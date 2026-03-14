@@ -57,6 +57,22 @@ To enable our team of 4 to work simultaneously without merge conflicts, the syst
     * `ProducerConsumer.java`: Simulation of the Producer-Consumer problem using semaphores.
     * `SyncCommands.java`: User commands: `sync-run-pc` (run Producer-Consumer), `sync-stop`.
 
+### Module 8: Security and Permissions (Deliverable 4)
+* **Responsibility**: Manages user authentication and file system permissions.
+* **Key Classes**:
+    * `UserManager.java`: Handles user registration and authentication.
+    * `Session.java`: Tracks the currently logged-in user.
+    * `FileSecurityManager.java`: Enforces file permissions (Read/Write/Execute) based on user roles.
+    * `User.java` / `Role.java`: Data models for users and roles.
+
+### Module 9: Piping and Text Processing (Deliverable 4)
+* **Responsibility**: Enables command chaining and text manipulation.
+* **Key Classes**:
+    * `PipelineExecutor` (Implementation within CommandDispatcher): Orchestrates the flow of data between commands using input/output streams.
+    * `GrepCommand.java`: Filters input text based on a search term.
+    * `SortCommand.java`: Sorts input text lines alphabetically.
+    * `Command.java`: Updated interface to support `InputStream` and `PrintStream`.
+
 ## 3. Technical Specifications
 * **Tech Stack**: Pure core Java. **Strictly do not use Spring Boot or any external web frameworks.** Use `java.lang.ProcessBuilder` for process management.
 * **Build Tool**: Maven (for basic compiling and packaging only).
@@ -68,3 +84,5 @@ To enable our team of 4 to work simultaneously without merge conflicts, the syst
     * `com.osshell.scheduling` - Process scheduling algorithms and simulation
     * `com.osshell.memory` - Memory management (paging, replacement algorithms)
     * `com.osshell.sync` - Process synchronization (mutex, semaphores)
+    * `com.osshell.security` - Security and permissions (user management, file security)
+    * `com.osshell.pipeline` - Piping and text processing (command chaining, text filters)
