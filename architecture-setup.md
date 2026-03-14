@@ -42,6 +42,21 @@ To enable our team of 4 to work simultaneously without merge conflicts, the syst
     * `SchedulingMetrics.java`: Tracks and calculates performance metrics: waiting time, turnaround time, and response time.
     * `SchedulingCommands.java`: Implements user commands for scheduling: `schedule-rr` (Round-Robin), `schedule-priority` (Priority-Based), `add-process`, and `show-metrics`.
 
+### Module 6: Memory Management (Deliverable 3)
+* **Responsibility**: Simulates memory allocation using paging and page replacement algorithms.
+* **Key Classes**:
+    * `MemoryManager.java`: Manages memory frames and page tables. Handles allocation, deallocation, and page faults.
+    * `PageReplacementAlgorithm.java` (Interface): Strategy pattern for replacement algorithms.
+    * `FIFOAlgorithm.java` / `LRUAlgorithm.java`: Concrete implementations of page replacement.
+    * `MemoryCommands.java`: User commands: `mem-init`, `mem-alloc`, `mem-access`, `mem-status`.
+
+### Module 7: Process Synchronization (Deliverable 3)
+* **Responsibility**: Implements synchronization primitives and demonstrates classical problems.
+* **Key Classes**:
+    * `Mutex.java` / `Semaphore.java`: Custom implementations of synchronization primitives.
+    * `ProducerConsumer.java`: Simulation of the Producer-Consumer problem using semaphores.
+    * `SyncCommands.java`: User commands: `sync-run-pc` (run Producer-Consumer), `sync-stop`.
+
 ## 3. Technical Specifications
 * **Tech Stack**: Pure core Java. **Strictly do not use Spring Boot or any external web frameworks.** Use `java.lang.ProcessBuilder` for process management.
 * **Build Tool**: Maven (for basic compiling and packaging only).
@@ -51,3 +66,5 @@ To enable our team of 4 to work simultaneously without merge conflicts, the syst
     * `com.osshell.process` - External process execution
     * `com.osshell.jobs` - Job control and tracking
     * `com.osshell.scheduling` - Process scheduling algorithms and simulation
+    * `com.osshell.memory` - Memory management (paging, replacement algorithms)
+    * `com.osshell.sync` - Process synchronization (mutex, semaphores)
