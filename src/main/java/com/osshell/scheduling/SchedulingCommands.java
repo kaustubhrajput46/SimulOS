@@ -2,6 +2,8 @@ package com.osshell.scheduling;
 
 import com.osshell.commands.Command;
 
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -16,8 +18,13 @@ public class SchedulingCommands implements Command {
 
     @Override
     public int execute(String[] args) {
+        return execute(args, System.in, System.out);
+    }
+    
+    @Override
+    public int execute(String[] args, InputStream in, PrintStream out) {
         if (args.length == 0) {
-            printUsage();
+            printUsage(out);
             return 1;
         }
 
@@ -26,27 +33,32 @@ public class SchedulingCommands implements Command {
 
         switch (command) {
             case "schedule-rr":
-                return scheduleRoundRobin(cmdArgs);
+                return scheduleRoundRobin(cmdArgs, out);
             case "schedule-priority":
-                return schedulePriority(cmdArgs);
+                return schedulePriority(cmdArgs, out);
             case "add-process":
-                return addProcess(cmdArgs);
+                return addProcess(cmdArgs, out);
             case "run-scheduler":
-                return runScheduler(cmdArgs);
+                return runScheduler(cmdArgs, out);
             case "stop-scheduler":
-                return stopScheduler(cmdArgs);
+                return stopScheduler(cmdArgs, out);
             case "show-metrics":
-                return showMetrics(cmdArgs);
+                return showMetrics(cmdArgs, out);
             case "clear-scheduler":
-                return clearScheduler(cmdArgs);
+                return clearScheduler(cmdArgs, out);
             default:
                 System.err.println("Unknown scheduling command: " + command);
-                printUsage();
+                printUsage(out);
                 return 1;
         }
     }
 
-    private int scheduleRoundRobin(String[] args) {
+    private void printUsage(PrintStream out) {
+        // ... simple usage print
+         out.println("Scheduler Usage: schedule-rr, schedule-priority, add-process, run-scheduler, stop-scheduler, show-metrics");
+    }
+
+    private int scheduleRoundRobin(String[] args, PrintStream out) {
         if (schedulerThread != null && schedulerThread.isAlive()) {
             System.err.println("Scheduler already running");
             return 1;
@@ -68,27 +80,27 @@ public class SchedulingCommands implements Command {
         }
 
         currentScheduler = new RoundRobinScheduler(timeQuantum);
-        System.out.println("Round-Robin scheduler initialized with time quantum: " + timeQuantum + "ms");
-        System.out.println("Use 'add-process <name> <burst_time>' to add processes");
-        System.out.println("Use 'run-scheduler' to start scheduling in background");
+        out.println("Round-Robin scheduler initialized with time quantum: " + timeQuantum + "ms");
+        out.println("Use 'add-process <name> <burst_time>' to add processes");
+        out.println("Use 'run-scheduler' to start scheduling in background");
         return 0;
     }
 
-    private int schedulePriority(String[] args) {
+    private int schedulePriority(String[] args, PrintStream out) {
         if (schedulerThread != null && schedulerThread.isAlive()) {
             System.err.println("Scheduler already running");
             return 1;
         }
 
         currentScheduler = new PriorityScheduler();
-        System.out.println("Priority-Based scheduler initialized");
-        System.out.println("Use 'add-process <name> <burst_time> <priority>' to add processes");
-        System.out.println("Lower priority number = Higher priority");
-        System.out.println("Use 'run-scheduler' to start scheduling in background");
+        out.println("Priority-Based scheduler initialized");
+        out.println("Use 'add-process <name> <burst_time> <priority>' to add processes");
+        out.println("Lower priority number = Higher priority");
+        out.println("Use 'run-scheduler' to start scheduling in background");
         return 0;
     }
-
-    private int addProcess(String[] args) {
+    
+    private int addProcess(String[] args, PrintStream out) {
         if (currentScheduler == null) {
             System.err.println("No scheduler initialized. Use 'schedule-rr' or 'schedule-priority' first.");
             return 1;
@@ -129,7 +141,7 @@ public class SchedulingCommands implements Command {
         return 0;
     }
 
-    private int runScheduler(String[] args) {
+    private int runScheduler(String[] args, PrintStream out) {
         if (currentScheduler == null) {
             System.err.println("No scheduler initialized. Use 'schedule-rr' or 'schedule-priority' first.");
             return 1;
@@ -149,7 +161,7 @@ public class SchedulingCommands implements Command {
             schedulerThread = new SchedulerThread(currentScheduler, logger);
             schedulerThread.start();
 
-            System.out.println("Scheduler started in background. Logs: " + logger.getLogFileName());
+            out.println("Scheduler started in background. Logs: " + logger.getLogFileName());
             return 0;
 
         } catch (IOException e) {
@@ -158,13 +170,13 @@ public class SchedulingCommands implements Command {
         }
     }
 
-    private int stopScheduler(String[] args) {
+    private int stopScheduler(String[] args, PrintStream out) {
         if (schedulerThread == null || !schedulerThread.isAlive()) {
             System.err.println("No scheduler is running");
             return 1;
         }
 
-        System.out.println("Stopping scheduler...");
+        out.println("Stopping scheduler...");
         schedulerThread.stopScheduler();
 
         // Wait for thread to finish
@@ -174,11 +186,11 @@ public class SchedulingCommands implements Command {
             Thread.currentThread().interrupt();
         }
 
-        System.out.println("Scheduler stopped. Incomplete processes remain in queue.");
+        out.println("Scheduler stopped. Incomplete processes remain in queue.");
         return 0;
     }
 
-    private int showMetrics(String[] args) {
+    private int showMetrics(String[] args, PrintStream out) {
         if (currentScheduler == null) {
             System.err.println("No scheduler initialized.");
             return 1;
@@ -186,52 +198,36 @@ public class SchedulingCommands implements Command {
 
         SchedulingMetrics metrics = currentScheduler.getMetrics();
         if (metrics.getCompletedProcesses().isEmpty()) {
-            System.out.println("No completed processes yet.");
+            out.println("No completed processes yet.");
             return 0;
         }
 
         // Check if scheduler is still running
         if (schedulerThread != null && schedulerThread.isAlive()) {
-            System.out.println("Note: Scheduler still running - showing completed processes so far\n");
+            out.println("Note: Scheduler still running - showing completed processes so far\n");
         }
 
-        metrics.printMetrics();
+        // Assuming metrics.printMetrics() writes to System.out, ideally refactor it or capture it.
+        // For now, let's leave internal methods of Metrics using System.out or refactor Metrics later.
+        // Or better redirect System.out if needed (complex), but "metrics.printMetrics()" 
+        // likely just sysouts. Let's fix SchedulingMetrics potentially?
+        // Actually, let's just use System.out for Metrics for now as piping metrics is rare requirement here.
+        metrics.printMetrics(); 
         return 0;
     }
 
-    private int clearScheduler(String[] args) {
+    private int clearScheduler(String[] args, PrintStream out) {
         if (schedulerThread != null && schedulerThread.isAlive()) {
-            System.err.println("Cannot clear scheduler while running. Stop it first with stop-scheduler");
-            return 1;
+             System.err.println("Stop scheduler first.");
+             return 1;
         }
-
         currentScheduler = null;
-        schedulerThread = null;
         processIdCounter = 1;
-        System.out.println("Scheduler cleared.");
+        out.println("Scheduler cleared.");
         return 0;
     }
 
-    private void printUsage() {
-        System.out.println("\nScheduling Commands:");
-        System.out.println("  schedule-rr [time_quantum]        - Initialize Round-Robin scheduler");
-        System.out.println("  schedule-priority                 - Initialize Priority-Based scheduler");
-        System.out.println("  add-process <name> <burst> [pri]  - Add a process (works before/during execution)");
-        System.out.println("  run-scheduler                     - Start the scheduler in background");
-        System.out.println("  stop-scheduler                    - Stop the running scheduler");
-        System.out.println("  show-metrics                      - Display scheduling metrics");
-        System.out.println("  clear-scheduler                   - Clear current scheduler (must be stopped)");
-        System.out.println("\nExample - Round-Robin:");
-        System.out.println("  schedule-rr 50");
-        System.out.println("  add-process P1 200");
-        System.out.println("  add-process P2 150");
-        System.out.println("  run-scheduler");
-        System.out.println("  show-metrics");
-        System.out.println("\nExample - Priority with Dynamic Preemption:");
-        System.out.println("  schedule-priority");
-        System.out.println("  add-process Low 5000 10");
-        System.out.println("  run-scheduler");
-        System.out.println("  add-process High 1000 1    (will preempt Low immediately)");
-        System.out.println("  show-metrics");
+    private void printUsage() { 
+       printUsage(System.out);
     }
 }

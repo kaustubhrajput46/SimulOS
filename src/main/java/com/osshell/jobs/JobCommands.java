@@ -2,6 +2,8 @@ package com.osshell.jobs;
 
 import com.osshell.commands.Command;
 
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -17,6 +19,11 @@ public class JobCommands implements Command {
 
     @Override
     public int execute(String[] args) {
+        return execute(args, System.in, System.out);
+    }
+
+    @Override
+    public int execute(String[] args, InputStream in, PrintStream out) {
         if (args.length == 0) {
             return 1;
         }
@@ -26,7 +33,7 @@ public class JobCommands implements Command {
 
         switch (command) {
             case "jobs":
-                return jobs(cmdArgs);
+                return listJobs(out);
             case "fg":
                 return fg(cmdArgs);
             case "bg":
@@ -34,27 +41,31 @@ public class JobCommands implements Command {
             case "kill":
                 return kill(cmdArgs);
             default:
-                System.err.println("Unknown job control command: " + command);
+                System.err.println("Unknown job command: " + command);
                 return 1;
         }
     }
 
-    private int jobs(String[] args) {
+    private int listJobs(PrintStream out) {
         // Clean up completed jobs first
         jobTracker.cleanupCompletedJobs();
 
         Map<Integer, JobTracker.JobInfo> allJobs = jobTracker.getAllJobs();
         
         if (allJobs.isEmpty()) {
+            out.println("No active jobs.");
             return 0;
         }
 
+        out.println("ID\tPID\tState\tCommand");
         for (JobTracker.JobInfo jobInfo : allJobs.values()) {
             String state = jobInfo.getProcess().isAlive() ? "Running" : "Done";
-            System.out.println("[" + jobInfo.getJobId() + "] " + 
-                             state + "\t\t" + jobInfo.getCommand());
+            out.printf("[%d]\t%d\t%s\t%s%n",
+                    jobInfo.getJobId(),
+                    jobInfo.getPid(),
+                    state,
+                    jobInfo.getCommand());
         }
-
         return 0;
     }
 

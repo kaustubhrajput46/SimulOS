@@ -2,6 +2,8 @@ package com.osshell.commands;
 
 import com.osshell.core.Shell;
 
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.util.Arrays;
 
 /**
@@ -14,8 +16,9 @@ public class UtilityCommands implements Command {
         this.shell = shell;
     }
 
+
     @Override
-    public int execute(String[] args) {
+    public int execute(String[] args, InputStream in, PrintStream out) {
         if (args.length == 0) {
             return 1;
         }
@@ -25,32 +28,32 @@ public class UtilityCommands implements Command {
 
         switch (command) {
             case "echo":
-                return echo(cmdArgs);
+                return echo(cmdArgs, out);
             case "clear":
-                return clear(cmdArgs);
+                return clear(cmdArgs, out);
             case "exit":
-                return exit(cmdArgs);
+                return exit(cmdArgs); // Exit doesn't need streams usually
             default:
                 System.err.println("Unknown utility command: " + command);
                 return 1;
         }
     }
 
-    private int echo(String[] args) {
+    private int echo(String[] args, PrintStream out) {
         if (args.length == 0) {
-            System.out.println();
+            out.println();
             return 0;
         }
 
-        System.out.println(String.join(" ", args));
+        out.println(String.join(" ", args));
         return 0;
     }
 
-    private int clear(String[] args) {
+    private int clear(String[] args, PrintStream out) {
         try {
             // ANSI escape code to clear screen and move cursor to top-left
-            System.out.print("\033[H\033[2J");
-            System.out.flush();
+            out.print("\033[H\033[2J");
+            out.flush();
             return 0;
         } catch (Exception e) {
             System.err.println("clear: error clearing screen");

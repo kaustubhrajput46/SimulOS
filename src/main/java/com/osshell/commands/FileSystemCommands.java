@@ -1,7 +1,10 @@
 package com.osshell.commands;
 
-import java.io.File;
+import com.osshell.security.FileSecurityManager;
+import com.osshell.security.Session;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,13 +17,16 @@ import java.util.stream.Stream;
  */
 public class FileSystemCommands implements Command {
     private Path currentDirectory;
+    private final FileSecurityManager securityManager;
 
     public FileSystemCommands() {
         this.currentDirectory = Paths.get(System.getProperty("user.dir"));
+        this.securityManager = FileSecurityManager.getInstance();
     }
 
+
     @Override
-    public int execute(String[] args) {
+    public int execute(String[] args, InputStream in, PrintStream out) {
         if (args.length == 0) {
             return 1;
         }
@@ -30,28 +36,32 @@ public class FileSystemCommands implements Command {
 
         switch (command) {
             case "cd":
-                return cd(cmdArgs);
+                return cd(cmdArgs, out);
             case "pwd":
-                return pwd(cmdArgs);
+                return pwd(cmdArgs, out);
             case "ls":
-                return ls(cmdArgs);
+                return ls(cmdArgs, out);
             case "mkdir":
-                return mkdir(cmdArgs);
+                return mkdir(cmdArgs, out);
             case "rmdir":
-                return rmdir(cmdArgs);
+                return rmdir(cmdArgs, out);
             case "rm":
-                return rm(cmdArgs);
+                return rm(cmdArgs, out);
             case "touch":
-                return touch(cmdArgs);
+                return touch(cmdArgs, out);
             case "cat":
-                return cat(cmdArgs);
+                return cat(cmdArgs, out);
+            case "chmod":
+                return chmod(cmdArgs, out);
+            case "chown":
+                return chown(cmdArgs, out);
             default:
                 System.err.println("Unknown file system command: " + command);
                 return 1;
         }
     }
 
-    private int cd(String[] args) {
+    private int cd(String[] args, PrintStream out) {
         if (args.length == 0) {
             // Change to home directory
             currentDirectory = Paths.get(System.getProperty("user.home"));
@@ -69,6 +79,11 @@ public class FileSystemCommands implements Command {
         } else {
             newPath = currentDirectory.resolve(targetPath).normalize();
         }
+        
+        if (!checkAccess(newPath, "x")) {
+            System.err.println("cd: permission denied: " + targetPath);
+            return 1;
+        }
 
         if (Files.exists(newPath) && Files.isDirectory(newPath)) {
             currentDirectory = newPath;
@@ -80,13 +95,18 @@ public class FileSystemCommands implements Command {
         }
     }
 
-    private int pwd(String[] args) {
-        System.out.println(currentDirectory.toAbsolutePath());
+    private int pwd(String[] args, PrintStream out) {
+        out.println(currentDirectory.toAbsolutePath());
         return 0;
     }
 
-    private int ls(String[] args) {
+    private int ls(String[] args, PrintStream out) {
         Path targetPath = args.length > 0 ? resolvePath(args[0]) : currentDirectory;
+        
+        if (!checkAccess(targetPath, "r")) {
+            System.err.println("ls: permission denied: " + targetPath);
+            return 1;
+        }
 
         if (!Files.exists(targetPath)) {
             System.err.println("ls: cannot access '" + args[0] + "': No such file or directory");
@@ -94,15 +114,14 @@ public class FileSystemCommands implements Command {
         }
 
         if (Files.isDirectory(targetPath)) {
-            try {
-                Files.list(targetPath)
-                        .sorted(Comparator.comparing(Path::getFileName))
+            try (Stream<Path> stream = Files.list(targetPath)) {
+                stream.sorted(Comparator.comparing(Path::getFileName))
                         .forEach(path -> {
                             String name = path.getFileName().toString();
                             if (Files.isDirectory(path)) {
-                                System.out.println(name + "/");
+                                out.println(name + "/");
                             } else {
-                                System.out.println(name);
+                                out.println(name);
                             }
                         });
                 return 0;
@@ -111,12 +130,12 @@ public class FileSystemCommands implements Command {
                 return 1;
             }
         } else {
-            System.out.println(targetPath.getFileName());
+            out.println(targetPath.getFileName());
             return 0;
         }
     }
 
-    private int mkdir(String[] args) {
+    private int mkdir(String[] args, PrintStream out) {
         if (args.length == 0) {
             System.err.println("mkdir: missing operand");
             return 1;
@@ -124,8 +143,15 @@ public class FileSystemCommands implements Command {
 
         for (String dirName : args) {
             Path newDir = resolvePath(dirName);
+            
+            if (!checkAccess(newDir.getParent(), "w")) {
+                System.err.println("mkdir: permission denied: " + dirName);
+                return 1;
+            }
+
             try {
                 Files.createDirectories(newDir);
+                securityManager.createFileMetadata(newDir.toString(), Session.getInstance().getCurrentUser().getUsername());
             } catch (IOException e) {
                 System.err.println("mkdir: cannot create directory '" + dirName + "': " + e.getMessage());
                 return 1;
@@ -134,7 +160,7 @@ public class FileSystemCommands implements Command {
         return 0;
     }
 
-    private int rmdir(String[] args) {
+    private int rmdir(String[] args, PrintStream out) {
         if (args.length == 0) {
             System.err.println("rmdir: missing operand");
             return 1;
@@ -142,6 +168,12 @@ public class FileSystemCommands implements Command {
 
         for (String dirName : args) {
             Path dir = resolvePath(dirName);
+            
+            if (!checkAccess(dir.getParent(), "w")) {
+                System.err.println("rmdir: permission denied: " + dirName);
+                return 1;
+            }
+
             if (!Files.exists(dir)) {
                 System.err.println("rmdir: failed to remove '" + dirName + "': No such file or directory");
                 return 1;
@@ -160,7 +192,7 @@ public class FileSystemCommands implements Command {
         return 0;
     }
 
-    private int rm(String[] args) {
+    private int rm(String[] args, PrintStream out) {
         if (args.length == 0) {
             System.err.println("rm: missing operand");
             return 1;
@@ -181,6 +213,12 @@ public class FileSystemCommands implements Command {
 
         for (int i = startIndex; i < args.length; i++) {
             Path file = resolvePath(args[i]);
+            
+            if (!checkAccess(file.getParent(), "w")) {
+                System.err.println("rm: permission denied: " + args[i]);
+                return 1;
+            }
+
             if (!Files.exists(file)) {
                 System.err.println("rm: cannot remove '" + args[i] + "': No such file or directory");
                 return 1;
@@ -213,7 +251,7 @@ public class FileSystemCommands implements Command {
         return 0;
     }
 
-    private int touch(String[] args) {
+    private int touch(String[] args, PrintStream out) {
         if (args.length == 0) {
             System.err.println("touch: missing operand");
             return 1;
@@ -221,10 +259,22 @@ public class FileSystemCommands implements Command {
 
         for (String fileName : args) {
             Path file = resolvePath(fileName);
+            
+            // Check write permission on parent directory (to create or access)
+            if (!checkAccess(file.getParent(), "w")) {
+                 System.err.println("touch: permission denied: " + fileName);
+                 return 1;
+            }
+
             try {
                 if (!Files.exists(file)) {
                     Files.createFile(file);
+                    securityManager.createFileMetadata(file.toString(), Session.getInstance().getCurrentUser().getUsername());
                 } else {
+                    if (!checkAccess(file, "w")) {
+                        System.err.println("touch: permission denied: " + fileName);
+                        return 1;
+                    }
                     // Update last modified time
                     Files.setLastModifiedTime(file, 
                         java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis()));
@@ -237,7 +287,7 @@ public class FileSystemCommands implements Command {
         return 0;
     }
 
-    private int cat(String[] args) {
+    private int cat(String[] args, PrintStream out) {
         if (args.length == 0) {
             System.err.println("cat: missing operand");
             return 1;
@@ -245,6 +295,12 @@ public class FileSystemCommands implements Command {
 
         for (String fileName : args) {
             Path file = resolvePath(fileName);
+            
+            if (!checkAccess(file, "r")) {
+                System.err.println("cat: permission denied: " + fileName);
+                return 1;
+            }
+
             if (!Files.exists(file)) {
                 System.err.println("cat: " + fileName + ": No such file or directory");
                 return 1;
@@ -254,14 +310,73 @@ public class FileSystemCommands implements Command {
                 return 1;
             }
 
-            try {
-                Files.lines(file).forEach(System.out::println);
+            try (Stream<String> lines = Files.lines(file)) {
+                lines.forEach(out::println);
             } catch (IOException e) {
                 System.err.println("cat: " + fileName + ": " + e.getMessage());
                 return 1;
             }
         }
         return 0;
+    }
+
+    private int chmod(String[] args, PrintStream out) {
+        if (args.length < 2) {
+            System.err.println("Usage: chmod <permissions> <file>");
+            return 1;
+        }
+        
+        String perms = args[0];
+        Path file = resolvePath(args[1]);
+        
+        if (!Files.exists(file)) {
+            System.err.println("chmod: " + args[1] + ": No such file");
+            return 1;
+        }
+        
+        // Only owner or admin can change permissions
+        // We cheat and use 'w' to represent ownership check roughly for now, or implement strict owner check
+        if (!Session.getInstance().getCurrentUser().getUsername().equals(securityManager.getFileDetails(file.toString()).split(" ")[1]) 
+            && Session.getInstance().getCurrentUser().getRole() != com.osshell.security.Role.ADMIN) {
+             System.err.println("chmod: changing permissions of '" + args[1] + "': Operation not permitted");
+             return 1;
+        }
+        
+        securityManager.setPermissions(file.toString(), securityManager.getFileDetails(file.toString()).split(" ")[1], perms);
+        return 0;
+    }
+
+    private int chown(String[] args, PrintStream out) {
+        if (args.length < 2) {
+             System.err.println("Usage: chown <owner> <file>");
+             return 1;
+        }
+        
+        // Only admin can chown
+        if (Session.getInstance().getCurrentUser().getRole() != com.osshell.security.Role.ADMIN) {
+            System.err.println("chown: operation not permitted");
+            return 1;
+        }
+        
+        String owner = args[0];
+        Path file = resolvePath(args[1]);
+        String currentPerms = securityManager.getFileDetails(file.toString()).split(" ")[0];
+        securityManager.setPermissions(file.toString(), owner, currentPerms);
+        return 0;
+    }
+
+    private boolean checkAccess(Path path, String mode) {
+        if (!Session.getInstance().isLoggedIn()) return false;
+        
+        // If checking parent and it's null (root), assume allowed for now or handle appropriately
+        if (path == null) return true;
+        
+        switch (mode) {
+            case "r": return securityManager.canRead(path.toString(), Session.getInstance().getCurrentUser());
+            case "w": return securityManager.canWrite(path.toString(), Session.getInstance().getCurrentUser());
+            case "x": return securityManager.canExecute(path.toString(), Session.getInstance().getCurrentUser());
+            default: return false;
+        }
     }
 
     /**
